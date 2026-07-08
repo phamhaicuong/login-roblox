@@ -3,9 +3,7 @@ name: Build Theos Tweak
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
-  workflow_dispatch:  # cho phép chạy thủ công
+  workflow_dispatch:
 
 jobs:
   build:
@@ -20,13 +18,14 @@ jobs:
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
           echo "$HOME/theos/bin" >> $GITHUB_PATH
 
-      - name: Install dependencies
+      - name: Install build dependencies (không cần ldid)
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             build-essential \
             curl \
             git \
+            unzip \
             libssl-dev \
             zlib1g-dev \
             libbz2-dev \
@@ -39,28 +38,30 @@ jobs:
             libxmlsec1-dev \
             libffi-dev \
             liblzma-dev \
-            python3-openssl \
-            git \
-            unzip
-
-      - name: Install ldid (code signing tool)
-        run: |
-          git clone https://github.com/ProcursusTeam/ldid.git /tmp/ldid
-          cd /tmp/ldid
-          make
-          sudo make install
+            python3-openssl
 
       - name: Build tweak
         run: |
           export THEOS=$HOME/theos
+          # Tạo thư mục vendor/lib để tránh lỗi nếu thiếu
+          mkdir -p $THEOS/vendor/lib
           make package
-          # File .deb sẽ nằm trong thư mục packages/
-          # File .dylib nằm trong .theos/obj/debug/ (hoặc release)
 
-      - name: Upload artifacts (deb and dylib)
+      - name: Rename .dylib to .lylib (tuỳ chọn)
+        run: |
+          if [ -f .theos/obj/debug/RobloxVNGKiller.dylib ]; then
+            cp .theos/obj/debug/RobloxVNGKiller.dylib RobloxVNGKiller.lylib
+          elif [ -f .theos/obj/debug/RobloxVNGKiller.dylib ]; then
+            cp .theos/obj/debug/RobloxVNGKiller.dylib RobloxVNGKiller.lylib
+          else
+            echo "Không tìm thấy .dylib, bỏ qua"
+          fi
+
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: TweakPackage
           path: |
             packages/*.deb
             .theos/obj/**/*.dylib
+            *.lylib
