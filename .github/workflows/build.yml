@@ -1,0 +1,66 @@
+name: Build Theos Tweak
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:  # cho phép chạy thủ công
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Theos
+        run: |
+          git clone --recursive https://github.com/theos/theos.git $HOME/theos
+          echo "THEOS=$HOME/theos" >> $GITHUB_ENV
+          echo "$HOME/theos/bin" >> $GITHUB_PATH
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            curl \
+            git \
+            libssl-dev \
+            zlib1g-dev \
+            libbz2-dev \
+            libreadline-dev \
+            libsqlite3-dev \
+            libncurses5-dev \
+            xz-utils \
+            tk-dev \
+            libxml2-dev \
+            libxmlsec1-dev \
+            libffi-dev \
+            liblzma-dev \
+            python3-openssl \
+            git \
+            unzip
+
+      - name: Install ldid (code signing tool)
+        run: |
+          git clone https://github.com/ProcursusTeam/ldid.git /tmp/ldid
+          cd /tmp/ldid
+          make
+          sudo make install
+
+      - name: Build tweak
+        run: |
+          export THEOS=$HOME/theos
+          make package
+          # File .deb sẽ nằm trong thư mục packages/
+          # File .dylib nằm trong .theos/obj/debug/ (hoặc release)
+
+      - name: Upload artifacts (deb and dylib)
+        uses: actions/upload-artifact@v4
+        with:
+          name: TweakPackage
+          path: |
+            packages/*.deb
+            .theos/obj/**/*.dylib
