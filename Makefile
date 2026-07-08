@@ -10,4 +10,8 @@ TWEAK_NAME = RobloxVNGKiller
 RobloxVNGKiller_FILES = Tweak.xm
 RobloxVNGKiller_CFLAGS = -fobjc-arc
 
+# Bỏ qua bước ký để tránh lỗi nếu không có ldid
+CODESIGN = true
+TARGET_CODESIGN = echo
+
 include $(THEOS_MAKE_PATH)/tweak.mk
